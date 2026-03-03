@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Planificador de Salidas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161922;
+    --surface2: #1e2330;
+    --border: #2a3040;
+    --accent: #e8ff47;
+    --accent2: #47c8ff;
+    --accent3: #ff6b47;
+    --text: #e8ecf4;
+    --text-muted: #7a8499;
+    --green: #47ffb3;
+    --red: #ff4776;
+    --yellow: #ffca47;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 4px 32px rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background grain */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.5;
+  }
+
+  .app { position: relative; z-index: 1; max-width: 1100px; margin: 0 auto; padding: 0 20px 80px; }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 36px 0 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 40px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo-icon {
+    width: 46px; height: 46px;
+    background: var(--accent);
+    border-radius: 12px;
+    display: grid; place-items: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .logo h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+
+  .logo p { font-size: 13px; color: var(--text-muted); }
+
+  .header-actions { display: flex; gap: 10px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: var(--radius-sm);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #0d0f14;
+  }
+  .btn-primary:hover { background: #d4eb2e; transform: translateY(-1px); }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--text-muted); }
+
+  .btn-danger {
+    background: rgba(255,71,118,0.1);
+    color: var(--red);
+    border: 1px solid rgba(255,71,118,0.3);
+  }
+  .btn-danger:hover { background: rgba(255,71,118,0.2); }
+
+  .btn-sm { padding: 7px 14px; font-size: 13px; }
+  .btn-xs { padding: 5px 10px; font-size: 12px; }
+
+  /* LAYOUT */
+  .layout { display: grid; grid-template-columns: 1fr 340px; gap: 24px; }
+
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-title span.icon {
+    font-size: 18px;
+    width: 36px; height: 36px;
+    background: var(--surface2);
+    border-radius: 8px;
+    display: grid; place-items: center;
+  }
+
+  /* FORM */
+  .form-group { margin-bottom: 18px; }
+
+  label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  input, select, textarea {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 15px;
+    padding: 12px 16px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--accent2);
+    box-shadow: 0 0 0 3px rgba(71,200,255,0.1);
+  }
+
+  input::placeholder { color: var(--text-muted); }
+
+  select option { background: var(--surface2); }
+
+  textarea { resize: vertical; min-height: 80px; }
+
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+  /* CURRENCY INPUT */
+  .input-prefix {
+    position: relative;
+  }
+  .input-prefix span {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--accent);
+    font-weight: 700;
+    font-size: 15px;
+    pointer-events: none;
+  }
+  .input-prefix input { padding-left: 30px; }
+
+  /* TAGS / PEOPLE */
+  .tag-input-container {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 46px;
+    align-items: center;
+    cursor: text;
+    transition: border-color 0.2s;
+  }
+  .tag-input-container:focus-within { border-color: var(--accent2); }
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 10px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  .tag button {
+    background: none; border: none; cursor: pointer;
+    color: var(--text-muted); font-size: 14px; line-height: 1;
+    padding: 0;
+    transition: color 0.2s;
+  }
+  .tag button:hover { color: var(--red); }
+
+  .tag-input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-size: 14px;
+    min-width: 80px;
+    flex: 1;
+    padding: 2px 0;
+    box-shadow: none;
+  }
+
+  /* SECTIONS DIVIDER */
+  .section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0 20px;
+  }
+  .section-divider span {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+  }
+  .section-divider::before, .section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* COST ITEMS */
+  .cost-category {
+    margin-bottom: 20px;
+  }
+
+  .cost-category-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .cost-category-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+  }
+
+  .cost-items-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .cost-item {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 10px;
+    align-items: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    transition: border-color 0.2s;
+  }
+  .cost-item:hover { border-color: var(--text-muted); }
+
+  .cost-item-name {
+    font-size: 14px;
+    color: var(--text);
+    background: none;
+    border: none;
+    outline: none;
+    width: 100%;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .cost-item-amount {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent);
+    background: none;
+    border: none;
+    outline: none;
+    text-align: right;
+    width: 90px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .cost-item-delete {
+    background: none; border: none; cursor: pointer;
+    color: var(--border); font-size: 16px;
+    transition: color 0.2s; padding: 2px;
+  }
+  .cost-item-delete:hover { color: var(--red); }
+
+  .add-item-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-size: 13px;
+    padding: 8px 14px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .add-item-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* BRING LIST */
+  .bring-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .bring-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+  }
+
+  .bring-item input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .bring-item-name {
+    flex: 1;
+    font-size: 14px;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  .bring-item-name.checked { text-decoration: line-through; color: var(--text-muted); }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 20px; }
+
+  /* EFFECTIVENESS METER */
+  .effectiveness-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 28px;
+    box-shadow: var(--shadow);
+  }
+
+  .effectiveness-score {
+    text-align: center;
+    margin: 24px 0;
+  }
+
+  .score-ring {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+  }
+
+  .score-ring svg { transform: rotate(-90deg); }
+
+  .score-ring circle {
+    fill: none;
+    stroke-width: 10;
+    stroke-linecap: round;
+  }
+
+  .score-ring .track { stroke: var(--surface2); }
+  .score-ring .fill { transition: stroke-dashoffset 0.8s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+  .score-number {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .score-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 38px;
+    font-weight: 800;
+    line-height: 1;
+  }
+
+  .score-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  .score-status {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+  }
+
+  /* BUDGET BAR */
+  .budget-bar-container { margin: 20px 0; }
+
+  .budget-bar-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+  }
+
+  .budget-bar {
+    height: 8px;
+    background: var(--surface2);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .budget-bar-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.6s ease, background 0.3s;
+  }
+
+  /* RECOMMENDATIONS */
+  .recommendation {
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border-left: 3px solid var(--accent2);
+    font-size: 13.5px;
+    line-height: 1.5;
+  }
+
+  .recommendation.warning { border-left-color: var(--yellow); }
+  .recommendation.danger { border-left-color: var(--red); }
+  .recommendation.success { border-left-color: var(--green); }
+
+  .recommendation strong {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    color: var(--text-muted);
+  }
+
+  /* PRIORITY LIST */
+  .priority-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .priority-item {
+    display: grid;
+    grid-template-columns: 28px 1fr auto;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    transition: border-color 0.2s;
+  }
+  .priority-item:hover { border-color: var(--text-muted); }
+
+  .priority-badge {
+    width: 28px; height: 28px;
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .priority-badge.p1 { background: rgba(232,255,71,0.15); color: var(--accent); }
+  .priority-badge.p2 { background: rgba(71,200,255,0.15); color: var(--accent2); }
+  .priority-badge.p3 { background: rgba(255,107,71,0.15); color: var(--accent3); }
+
+  .priority-text {
+    font-size: 14px;
+    background: none;
+    border: none;
+    outline: none;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    width: 100%;
+    padding: 0;
+    box-shadow: none;
+  }
+
+  /* TRIPS LIST */
+  .trips-grid { display: flex; flex-direction: column; gap: 12px; }
+
+  .trip-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 16px;
+    cursor: pointer;
+    transition: all 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .trip-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform 0.2s;
+  }
+  .trip-card:hover { border-color: var(--text-muted); transform: translateX(2px); }
+  .trip-card:hover::before { transform: scaleY(1); }
+  .trip-card.active { border-color: var(--accent); }
+  .trip-card.active::before { transform: scaleY(1); }
+
+  .trip-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  .trip-card-name {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .trip-card-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--surface);
+  }
+
+  .trip-card-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    gap: 12px;
+  }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(4px);
+    display: grid;
+    place-items: center;
+    z-index: 100;
+    padding: 20px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 32px;
+    max-width: 480px;
+    width: 100%;
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.2s;
+  }
+  .modal-overlay.open .modal { transform: scale(1) translateY(0); }
+
+  .modal h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+
+  .modal p { color: var(--text-muted); font-size: 14px; margin-bottom: 24px; }
+
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 28px; background: var(--surface2); padding: 4px; border-radius: var(--radius-sm); }
+
+  .tab-btn {
+    flex: 1;
+    padding: 10px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .tab-btn.active { background: var(--surface); color: var(--text); }
+
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* TOTALS ROW */
+  .totals-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    margin-top: 12px;
+  }
+
+  .totals-label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+  .totals-value { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800; }
+
+  /* EMPTY STATE */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-muted);
+  }
+  .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; line-height: 1.6; }
+
+  /* ANIMATE IN */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card, .effectiveness-card { animation: slideUp 0.4s ease forwards; }
+
+  /* SCROLL */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .no-trips-banner {
+    background: linear-gradient(135deg, var(--surface2), var(--surface));
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px;
+    text-align: center;
+  }
+  .no-trips-banner .icon { font-size: 56px; margin-bottom: 16px; }
+  .no-trips-banner h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 22px;
+    font-weight: 800;
+    margin-bottom: 8px;
+  }
+  .no-trips-banner p { color: var(--text-muted); font-size: 15px; }
+
+  .cost-total-per-category {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: right;
+    margin-top: 8px;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+  .badge-green { background: rgba(71,255,179,0.12); color: var(--green); }
+  .badge-red { background: rgba(255,71,118,0.12); color: var(--red); }
+  .badge-yellow { background: rgba(255,202,71,0.12); color: var(--yellow); }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🧭</div>
+      <div>
+        <h1>Planificador de Salidas</h1>
+        <p>Organiza, presupuesta y analiza tus salidas</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" onclick="showNewTripModal()">+ Nueva Salida</button>
+    </div>
+  </header>
+
+  <div id="mainView">
+    <div class="no-trips-banner" id="emptyBanner">
+      <div class="icon">🗺️</div>
+      <h3>Sin salidas registradas</h3>
+      <p>Crea tu primera salida para comenzar a planificar.</p>
+      <br>
+      <button class="btn btn-primary" onclick="showNewTripModal()">✦ Crear primera salida</button>
+    </div>
+
+    <div id="tripsSection" style="display:none;">
+      <div class="layout">
+        <div>
+          <!-- Tabs for trips list vs editor -->
+          <div id="tripEditorArea">
+            <!-- Dynamically filled -->
+          </div>
+        </div>
+        <div class="sidebar">
+          <div class="effectiveness-card" id="effectivenessPanel">
+            <div class="card-title"><span class="icon">📊</span> Efectividad</div>
+            <div class="effectiveness-score">
+              <div class="score-ring">
+                <svg width="140" height="140" viewBox="0 0 140 140">
+                  <circle class="track" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="0"/>
+                  <circle class="fill" id="scoreArc" cx="70" cy="70" r="58" stroke-dasharray="364.4" stroke-dashoffset="364.4" stroke="var(--accent)"/>
+                </svg>
+                <div class="score-number">
+                  <span class="score-value" id="scoreVal">—</span>
+                  <span class="score-label">PUNTOS</span>
+                </div>
+              </div>
+              <div class="score-status" id="scoreStatus">Selecciona una salida</div>
+            </div>
+
+            <div class="budget-bar-container" id="budgetBarContainer" style="display:none;">
+              <div class="budget-bar-labels">
+                <span>Costo estimado</span>
+                <span id="budgetBarPct">—</span>
+              </div>
+              <div class="budget-bar">
+                <div class="budget-bar-fill" id="budgetBarFill" style="width:0%"></div>
+              </div>
+              <div class="budget-bar-labels" style="margin-top:8px;">
+                <span id="barCostLabel">$0</span>
+                <span id="barBudgetLabel">$0 presupuesto</span>
+              </div>
+            </div>
+
+            <div id="recommendationsArea"></div>
+          </div>
+
+          <!-- Saved trips list -->
+          <div class="card">
+            <div class="card-title"><span class="icon">📋</span> Mis Salidas</div>
+            <div class="trips-grid" id="tripsList">
+              <div class="empty-state">
+                <div class="icon">🗂️</div>
+                <p>Aún no hay salidas guardadas.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- NEW TRIP MODAL -->
+<div class="modal-overlay" id="newTripModal">
+  <div class="modal">
+    <h3>✦ Nueva Salida</h3>
+    <p>Dale un nombre a tu salida para comenzar a planificarla.</p>
+    <div class="form-group">
+      <label>Nombre de la salida</label>
+      <input type="text" id="newTripName" placeholder="Ej: Playa con amigos, Camping, Cine…" onkeydown="if(event.key==='Enter')createTrip()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="createTrip()">Crear salida →</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================
+// STATE
+// =====================
+let trips = JSON.parse(localStorage.getItem('planifier_trips') || '[]');
+let activeTrip = null;
+
+function save() {
+  localStorage.setItem('planifier_trips', JSON.stringify(trips));
+}
+
+function getTrip(id) { return trips.find(t => t.id === id); }
+
+function generateId() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+// =====================
+// MODAL
+// =====================
+function showNewTripModal() {
+  document.getElementById('newTripModal').classList.add('open');
+  setTimeout(() => document.getElementById('newTripName').focus(), 100);
+}
+function closeModal() {
+  document.getElementById('newTripModal').classList.remove('open');
+  document.getElementById('newTripName').value = '';
+}
+
+function createTrip() {
+  const name = document.getElementById('newTripName').value.trim();
+  if (!name) return;
+  const trip = {
+    id: generateId(),
+    name,
+    budget: 0,
+    place: '',
+    date: '',
+    people: [],
+    priorities: ['', '', ''],
+    costs: {
+      transport: [],
+      food: [],
+      other: []
+    },
+    bringList: []
+  };
+  trips.push(trip);
+  save();
+  closeModal();
+  loadTrip(trip.id);
+  renderTripsList();
+  document.getElementById('emptyBanner').style.display = 'none';
+  document.getElementById('tripsSection').style.display = 'block';
+}
+
+// =====================
+// LOAD / RENDER TRIP EDITOR
+// =====================
+function loadTrip(id) {
+  activeTrip = id;
+  renderTripsList();
+  renderEditor();
+  updateEffectiveness();
+}
+
+function renderEditor() {
+  const t = getTrip(activeTrip);
+  if (!t) return;
+
+  const html = `
+    <div class="card" style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;">
+        <div class="card-title" style="margin-bottom:0;"><span class="icon">📍</span> ${escHtml(t.name)}</div>
+        <button class="btn btn-danger btn-sm" onclick="deleteTrip('${t.id}')">🗑 Eliminar</button>
+      </div>
+
+      <div class="tabs" id="editorTabs">
+        <button class="tab-btn active" onclick="switchTab('general')">📋 General</button>
+        <button class="tab-btn" onclick="switchTab('costos')">💰 Costos</button>
+        <button class="tab-btn" onclick="switchTab('llevar')">🎒 Llevaré</button>
+        <button class="tab-btn" onclick="switchTab('prioridades')">⭐ Prioridades</button>
+      </div>
+
+      <!-- GENERAL TAB -->
+      <div class="tab-content active" id="tab-general">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Lugar</label>
+            <input type="text" placeholder="Ej: Parque, Playa, Cine…" value="${escHtml(t.place)}" oninput="updateField('place', this.value)">
+          </div>
+          <div class="form-group">
+            <label>Fecha</label>
+            <input type="date" value="${t.date}" oninput="updateField('date', this.value)">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Presupuesto disponible</label>
+          <div class="input-prefix"><span>$</span>
+            <input type="number" min="0" step="0.01" placeholder="0.00" value="${t.budget||''}" oninput="updateField('budget', parseFloat(this.value)||0); updateEffectiveness();">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Personas que van (Enter o coma para agregar)</label>
+          <div class="tag-input-container" onclick="this.querySelector('.tag-input').focus()">
+            ${t.people.map(p => `<span class="tag">${escHtml(p)} <button onclick="removePerson('${t.id}','${escHtml(p)}')">×</button></span>`).join('')}
+            <input class="tag-input" placeholder="Nombre…" onkeydown="handlePersonInput(event,'${t.id}')">
+          </div>
+        </div>
+      </div>
+
+      <!-- COSTOS TAB -->
+      <div class="tab-content" id="tab-costos">
+        ${renderCostCategory(t, 'transport', '🚗 Transporte')}
+        ${renderCostCategory(t, 'food', '🍔 Comida / Cosas')}
+        ${renderCostCategory(t, 'other', '📦 Otros')}
+
+        <div class="totals-row">
+          <span class="totals-label">COSTO TOTAL ESTIMADO</span>
+          <span class="totals-value" id="totalCostDisplay">${fmtMoney(calcTotal(t))}</span>
+        </div>
+      </div>
+
+      <!-- LLEVARÉ TAB -->
+      <div class="tab-content" id="tab-llevar">
+        <div class="bring-list" id="bringList-${t.id}">
+          ${t.bringList.map((item, i) => renderBringItem(t.id, item, i)).join('')}
+        </div>
+        <br>
+        <button class="add-item-btn" onclick="addBringItem('${t.id}')">＋ Agregar elemento a llevar</button>
+      </div>
+
+      <!-- PRIORIDADES TAB -->
+      <div class="tab-content" id="tab-prioridades">
+        <p style="color:var(--text-muted);font-size:14px;margin-bottom:20px;">Define hasta 3 prioridades para esta salida (lo que más importa que salga bien).</p>
+        <div class="priority-list">
+          ${[0,1,2].map(i => `
+            <div class="priority-item">
+              <div class="priority-badge p${i+1}">${i+1}</div>
+              <input class="priority-text" type="text" placeholder="Prioridad #${i+1}…" value="${escHtml(t.priorities[i]||'')}" oninput="updatePriority('${t.id}', ${i}, this.value)">
+              ${t.priorities[i] ? `<button class="cost-item-delete" onclick="clearPriority('${t.id}',${i})">×</button>` : '<span></span>'}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('tripEditorArea').innerHTML = html;
+}
+
+function renderCostCategory(t, cat, label) {
+  const items = t.costs[cat] || [];
+  const total = items.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
+  return `
+    <div class="cost-category">
+      <div class="cost-category-header">
+        <div class="cost-category-title">${label}</div>
+        <span style="font-size:13px;color:var(--text-muted);">Total: <b style="color:var(--accent);">${fmtMoney(total)}</b></span>
+      </div>
+      <div class="cost-items-list" id="costList-${t.id}-${cat}">
+        ${items.map((item, i) => renderCostItem(t.id, cat, item, i)).join('')}
+      </div>
+      <br>
+      <button class="add-item-btn" onclick="addCostItem('${t.id}','${cat}')">＋ Agregar elemento</button>
+    </div>
+  `;
+}
+
+function renderCostItem(tid, cat, item, idx) {
+  return `
+    <div class="cost-item" id="costItem-${tid}-${cat}-${idx}">
+      <input class="cost-item-name" type="text" placeholder="Descripción…" value="${escHtml(item.name)}" oninput="updateCostItem('${tid}','${cat}',${idx},'name',this.value)">
+      <input class="cost-item-amount" type="number" min="0" step="0.01" placeholder="0.00" value="${item.amount||''}" oninput="updateCostItem('${tid}','${cat}',${idx},'amount',parseFloat(this.value)||0); updateEffectiveness();">
+      <button class="cost-item-delete" onclick="deleteCostItem('${tid}','${cat}',${idx})">×</button>
+    </div>
+  `;
+}
+
+function renderBringItem(tid, item, idx) {
+  return `
+    <div class="bring-item" id="bringItem-${tid}-${idx}">
+      <input type="checkbox" ${item.checked?'checked':''} onchange="toggleBring('${tid}',${idx},this.checked)">
+      <input class="bring-item-name ${item.checked?'checked':''}" type="text" placeholder="¿Qué llevarás?…" value="${escHtml(item.name)}" oninput="updateBringItem('${tid}',${idx},'name',this.value)">
+      <button class="cost-item-delete" onclick="deleteBringItem('${tid}',${idx})">×</button>
+    </div>
+  `;
+}
+
+// =====================
+// TAB SWITCHING
+// =====================
+function switchTab(tab) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// =====================
+// FIELD UPDATES
+// =====================
+function updateField(field, value) {
+  const t = getTrip(activeTrip);
+  if (!t) return;
+  t[field] = value;
+  save();
+  renderTripsList();
+}
+
+function handlePersonInput(e, tid) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const val = e.target.value.replace(',','').trim();
+    if (!val) return;
+    const t = getTrip(tid);
+    if (!t.people.includes(val)) {
+      t.people.push(val);
+      save();
+      renderEditor();
+    }
+    e.target.value = '';
+  }
+}
+
+function removePerson(tid, name) {
+  const t = getTrip(tid);
+  t.people = t.people.filter(p => p !== name);
+  save();
+  renderEditor();
+}
+
+function updateCostItem(tid, cat, idx, field, value) {
+  const t = getTrip(tid);
+  if (!t.costs[cat][idx]) return;
+  t.costs[cat][idx][field] = value;
+  save();
+  refreshCostTotals(t);
+}
+
+function refreshCostTotals(t) {
+  const total = calcTotal(t);
+  const el = document.getElementById('totalCostDisplay');
+  if (el) el.textContent = fmtMoney(total);
+  updateEffectiveness();
+}
+
+function addCostItem(tid, cat) {
+  const t = getTrip(tid);
+  t.costs[cat].push({ name: '', amount: 0 });
+  save();
+  renderEditor();
+  switchTabByName('costos');
+  // focus last item
+  setTimeout(() => {
+    const listEl = document.getElementById(`costList-${tid}-${cat}`);
+    if (listEl) {
+      const inputs = listEl.querySelectorAll('.cost-item-name');
+      if (inputs.length) inputs[inputs.length-1].focus();
+    }
+  }, 50);
+}
+
+function deleteCostItem(tid, cat, idx) {
+  const t = getTrip(tid);
+  t.costs[cat].splice(idx, 1);
+  save();
+  renderEditor();
+  switchTabByName('costos');
+  updateEffectiveness();
+}
+
+function addBringItem(tid) {
+  const t = getTrip(tid);
+  t.bringList.push({ name: '', checked: false });
+  save();
+  renderEditor();
+  switchTabByName('llevar');
+  setTimeout(() => {
+    const el = document.getElementById(`bringList-${tid}`);
+    if (el) { const ins = el.querySelectorAll('.bring-item-name'); if(ins.length) ins[ins.length-1].focus(); }
+  }, 50);
+}
+
+function updateBringItem(tid, idx, field, value) {
+  const t = getTrip(tid);
+  if (!t.bringList[idx]) return;
+  t.bringList[idx][field] = value;
+  save();
+}
+
+function toggleBring(tid, idx, checked) {
+  const t = getTrip(tid);
+  if (!t.bringList[idx]) return;
+  t.bringList[idx].checked = checked;
+  save();
+  const nameEl = document.querySelector(`#bringItem-${tid}-${idx} .bring-item-name`);
+  if (nameEl) { nameEl.classList.toggle('checked', checked); }
+}
+
+function deleteBringItem(tid, idx) {
+  const t = getTrip(tid);
+  t.bringList.splice(idx, 1);
+  save();
+  renderEditor();
+  switchTabByName('llevar');
+}
+
+function updatePriority(tid, idx, value) {
+  const t = getTrip(tid);
+  t.priorities[idx] = value;
+  save();
+}
+
+function clearPriority(tid, idx) {
+  const t = getTrip(tid);
+  t.priorities[idx] = '';
+  save();
+  renderEditor();
+  switchTabByName('prioridades');
+}
+
+function switchTabByName(name) {
+  const tab = document.getElementById('tab-' + name);
+  if (!tab) return;
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => {
+    el.classList.toggle('active', el.getAttribute('onclick') && el.getAttribute('onclick').includes("'"+name+"'"));
+  });
+  tab.classList.add('active');
+}
+
+// =====================
+// DELETE TRIP
+// =====================
+function deleteTrip(tid) {
+  if (!confirm('¿Eliminar esta salida?')) return;
+  trips = trips.filter(t => t.id !== tid);
+  save();
+  activeTrip = null;
+  renderTripsList();
+  if (trips.length === 0) {
+    document.getElementById('emptyBanner').style.display = 'block';
+    document.getElementById('tripsSection').style.display = 'none';
+  } else {
+    loadTrip(trips[trips.length-1].id);
+  }
+  clearEffectiveness();
+}
+
+// =====================
+// TRIPS LIST (sidebar)
+// =====================
+function renderTripsList() {
+  const container = document.getElementById('tripsList');
+  if (!trips.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">🗂️</div><p>Sin salidas guardadas.</p></div>';
+    return;
+  }
+  container.innerHTML = trips.map(t => {
+    const score = calcScore(t);
+    const scoreColor = score >= 80 ? 'var(--green)' : score >= 50 ? 'var(--yellow)' : 'var(--red)';
+    return `
+      <div class="trip-card ${activeTrip === t.id ? 'active' : ''}" onclick="loadTrip('${t.id}')">
+        <div class="trip-card-header">
+          <div class="trip-card-name">${escHtml(t.name)}</div>
+          <div class="trip-card-score" style="color:${scoreColor}">${score > 0 ? score + 'pts' : '—'}</div>
+        </div>
+        <div class="trip-card-meta">
+          ${t.place ? '<span>📍 '+escHtml(t.place)+'</span>' : ''}
+          ${t.date ? '<span>📅 '+formatDate(t.date)+'</span>' : ''}
+          ${t.people.length ? '<span>👥 '+t.people.length+'</span>' : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// =====================
+// EFFECTIVENESS
+// =====================
+function calcTotal(t) {
+  return ['transport','food','other'].reduce((sum, cat) => {
+    return sum + (t.costs[cat]||[]).reduce((s,i) => s + (parseFloat(i.amount)||0), 0);
+  }, 0);
+}
+
+function calcScore(t) {
+  if (!t.budget || t.budget <= 0) return 0;
+  const total = calcTotal(t);
+  if (total <= 0) return 0;
+  const ratio = total / t.budget;
+  // Perfect is ratio = 0.8-1.0 (within budget), score 100
+  if (ratio <= 1.0 && ratio >= 0.8) return 100;
+  if (ratio < 0.8) {
+    // Under budget by 20%+: efficiency drops
+    const diff = (0.8 - ratio) / 0.8;
+    return Math.max(0, Math.round(100 - diff * 100));
+  }
+  // Over budget
+  const over = (ratio - 1.0);
+  return Math.max(0, Math.round(100 - over * 150));
+}
+
+function updateEffectiveness() {
+  const t = getTrip(activeTrip);
+  if (!t) { clearEffectiveness(); return; }
+
+  const budget = parseFloat(t.budget) || 0;
+  const total = calcTotal(t);
+  const score = calcScore(t);
+
+  // Ring
+  const circ = 364.4;
+  const arc = document.getElementById('scoreArc');
+  const offset = circ - (score / 100) * circ;
+  arc.style.strokeDashoffset = offset;
+
+  const color = score >= 80 ? '#47ffb3' : score >= 50 ? '#ffca47' : '#ff4776';
+  arc.style.stroke = color;
+
+  document.getElementById('scoreVal').textContent = score;
+  document.getElementById('scoreVal').style.color = color;
+
+  const statusTexts = {
+    100: '✦ Presupuesto óptimo',
+    80: '✓ Dentro del rango',
+    50: '⚠ Ajuste recomendado',
+    0: '✗ Fuera de rango'
+  };
+  const statusText = score === 100 ? statusTexts[100] : score >= 80 ? statusTexts[80] : score >= 50 ? statusTexts[50] : statusTexts[0];
+  document.getElementById('scoreStatus').textContent = statusText;
+  document.getElementById('scoreStatus').style.color = color;
+
+  // Budget bar
+  if (budget > 0 && total > 0) {
+    document.getElementById('budgetBarContainer').style.display = 'block';
+    const pct = Math.min((total / budget) * 100, 140);
+    const fill = document.getElementById('budgetBarFill');
+    fill.style.width = Math.min(pct, 100) + '%';
+    fill.style.background = pct <= 80 ? 'var(--accent2)' : pct <= 100 ? 'var(--green)' : 'var(--red)';
+    document.getElementById('budgetBarPct').textContent = Math.round(pct) + '% usado';
+    document.getElementById('barCostLabel').textContent = fmtMoney(total);
+    document.getElementById('barBudgetLabel').textContent = fmtMoney(budget) + ' presupuesto';
+  }
+
+  // Recommendations
+  const recsArea = document.getElementById('recommendationsArea');
+  let html = '';
+
+  if (budget <= 0) {
+    html = '<div class="recommendation"><strong>Sin presupuesto</strong>Define un presupuesto en la pestaña General para calcular la efectividad.</div>';
+  } else if (total <= 0) {
+    html = '<div class="recommendation"><strong>Sin costos</strong>Agrega costos estimados en la pestaña Costos para ver análisis.</div>';
+  } else {
+    const ratio = total / budget;
+    const diff = total - budget;
+    const pctOver = ((ratio - 1) * 100).toFixed(1);
+    const pctUnder = ((1 - ratio) * 100).toFixed(1);
+
+    if (ratio > 1.0) {
+      // Over budget
+      html += `<div class="recommendation danger">
+        <strong>⚠ Presupuesto excedido</strong>
+        El costo estimado supera el presupuesto en <b style="color:var(--red)">${fmtMoney(Math.abs(diff))}</b> (${pctOver}% por encima).
+        A continuación 3 ideas para reducir el costo:
+      </div>`;
+
+      // Get top 3 items to cut
+      const allItems = [];
+      ['transport','food','other'].forEach(cat => {
+        (t.costs[cat]||[]).forEach(item => {
+          if ((parseFloat(item.amount)||0) > 0) allItems.push({...item, cat});
+        });
+      });
+      allItems.sort((a,b) => (parseFloat(b.amount)||0) - (parseFloat(a.amount)||0));
+      const top3 = allItems.slice(0, 3);
+
+      top3.forEach((item, i) => {
+        const saving = parseFloat(item.amount) || 0;
+        const catLabel = item.cat === 'transport' ? '🚗 Transporte' : item.cat === 'food' ? '🍔 Comida' : '📦 Otros';
+        html += `<div class="recommendation danger">
+          <strong>${i+1}. ${catLabel} — Omitir / reducir</strong>
+          "${escHtml(item.name)}" cuesta <b style="color:var(--accent)">${fmtMoney(saving)}</b>. 
+          Omitirlo dejaría el costo en <b>${fmtMoney(total - saving)}</b> 
+          ${total - saving <= budget ? '<span class="badge badge-green">✓ Dentro del presupuesto</span>' : '<span class="badge badge-red">Aún excedido</span>'}.
+        </div>`;
+      });
+
+    } else if (ratio < 0.8) {
+      // Under budget by 20%+
+      html += `<div class="recommendation warning">
+        <strong>💡 Presupuesto holgado</strong>
+        El costo estimado es <b>${pctUnder}%</b> menor al presupuesto (tienes <b style="color:var(--green)">${fmtMoney(Math.abs(diff))}</b> libres).
+        Un presupuesto más ajustado a los gastos sería <b style="color:var(--accent)">${fmtMoney(total * 1.1)}</b> 
+        (costo + 10% de reserva), que aún te mantiene con margen.
+      </div>`;
+      html += `<div class="recommendation success">
+        <strong>✦ Recomendación</strong>
+        Considera ajustar tu presupuesto a <b style="color:var(--accent)">${fmtMoney(Math.ceil(total * 1.15))}</b> para mayor control financiero, 
+        o úsalo para mejorar alguna experiencia de la salida.
+      </div>`;
+    } else {
+      html += `<div class="recommendation success">
+        <strong>✅ Todo en orden</strong>
+        El costo estimado está dentro del rango ideal del presupuesto. ¡La salida está bien planificada!
+      </div>`;
+    }
+  }
+
+  recsArea.innerHTML = html;
+}
+
+function clearEffectiveness() {
+  const arc = document.getElementById('scoreArc');
+  if (arc) { arc.style.strokeDashoffset = 364.4; arc.style.stroke = 'var(--accent)'; }
+  const sv = document.getElementById('scoreVal');
+  if (sv) sv.textContent = '—';
+  const ss = document.getElementById('scoreStatus');
+  if (ss) { ss.textContent = 'Selecciona una salida'; ss.style.color = ''; }
+  const ra = document.getElementById('recommendationsArea');
+  if (ra) ra.innerHTML = '';
+  const bc = document.getElementById('budgetBarContainer');
+  if (bc) bc.style.display = 'none';
+}
+
+// =====================
+// UTILS
+// =====================
+function fmtMoney(n) {
+  return '$' + (parseFloat(n)||0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+}
+
+function formatDate(d) {
+  if (!d) return '';
+  const [y,m,day] = d.split('-');
+  const months = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  return `${parseInt(day)} ${months[parseInt(m)-1]} ${y}`;
+}
+
+function escHtml(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// =====================
+// INIT
+// =====================
+function init() {
+  if (trips.length > 0) {
+    document.getElementById('emptyBanner').style.display = 'none';
+    document.getElementById('tripsSection').style.display = 'block';
+    loadTrip(trips[trips.length - 1].id);
+  }
+  renderTripsList();
+}
+
+init();
+</script>
+</body>
+</html>
